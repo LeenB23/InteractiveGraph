@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<style>
+	
+body{
+	font: 11px sans-serif;
+	position: fixed;
+	width: 55em;
+	color: #342E37;
+	background: #FAFFFD;
+	}
+	
+h1, p{
+		margin-left: 60px;
+	}
+	
+	p{
+		font-size: 12px;
+	}
+	
+	h1{
+		
+	font-size: 27px;
+	}
+
+.rectangle {
+	fill: #3C91E6;
+}
+	
+.rectangle:hover {
+	fill: #3C91E6;
+	opacity: .5;
+}
+	
+.axis {
+  font: 11px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+	
+.footer{
+		margin-top: -30px;
+	    font-size: 10.5px;
+	    margin-left: 65px;
+	}
+	
+.toolTip {
+  position: absolute;
+  display: none;
+  min-width: 80px;
+  height: auto;
+  background: none repeat scroll 0 0 #ffffff;
+  border: 2px solid #FA824C;
+  padding: 14px;
+  text-align: center;
+}
+	
+	#dropdown{
+		margin-left: -22em;
+		margin-bottom:-20em;
+		margin-top: 10px;
+	}
+
+	
+</style>
+</head>
+<body>
+<h1>Number of Abortions per Age Group</h1>
+<p>This interactive visualization represents the number of abortions that occurred in the state of Illinois, by age groups, between the years of 1995 and 2012.</p>
+
+<div id="drop" align="center"></div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+
+var margin = {top: 20, right: 300, bottom: 80, left: 105},
+    width = 900 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+var svg = d3.select("body").append("svg")
+	.attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+	.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	
+var tooltip = d3.select("body").append("div").attr("class", "toolTip");
+
+d3.csv("Abortion.csv", function(error, data){
+
+	// Get every column value
+	var elements = Object.keys(data[0])
+		.filter(function(d){
+			return ((d != "year") & (d != "age"));
+		});
+	var selection = elements[0];
+
+	var y = d3.scale.linear()
+			.domain([0, d3.max(data, function(d){
+				return +d[selection];
+			})])
+			.range([height, 0]);
+
+	var x = d3.scale.ordinal()
+			.domain(data.map(function(d){ return d.age;}))
+			.rangeBands([0, width]);
+
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+	    .orient("bottom");
+
+	var yAxis = d3.svg.axis()
+		.scale(y)
+	    .orient("left");
+
+	svg.append("g")
+    	.attr("class", "x axis")
+    	.attr("transform", "translate(0," + height + ")")
+    	.call(xAxis)
+    	.append("text")  // changed from .selectAll to .append
+    
+    // ADDED 
+    
+        .style("font-size", "1em")
+      	.style("text-anchor", "end")
+        .attr("transform", "translate("+0.5*width+",35)")
+      	.attr("dx", "7px")
+      	.attr("dy", "5px")
+        .text("Age Groups");
+
+
+ 	svg.append("g")
+    	.attr("class", "y axis")
+    	.call(yAxis)
+    
+    // ADDED
+    
+        .append("text")
+        .attr("fill", "#000")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 7)
+        .attr("dy", "1em")
+        .attr("text-anchor", "end")
+        .text("Number of Abortions");
+
+	svg.selectAll("rectangle")
+		.data(data)
+		.enter()
+		.append("rect")
+		.attr("class","rectangle")
+		.attr("width", width/data.length -10)
+		.attr("height", function(d){
+			return height - y(+d[selection]);
+		})
+		.on("mousemove", function(d){
+		var selectVal = document.getElementById("dropdown").value;
+
+            tooltip
+              .style("left", d3.event.pageX - 50 + "px")
+              .style("top", d3.event.pageY - 70 + "px")
+              .style("display", "inline-block")
+        .html("Ages "+ d.age + " : " + d[selectVal])
+				
+        })
+    		.on("mouseout", function(d){ tooltip.style("display", "none");
+									   
+		})
+	
+		.attr("x", function(d, i){
+			return (width / data.length) * i +5 ;
+		})
+		.attr("y", function(d){
+			return y(+d[selection]);
+		})
+		
+	
+		;
+
+	var selector = d3.select("#drop")
+    	.append("select")
+    	.attr("id","dropdown")
+    	.on("change", function(d){
+        	selection = document.getElementById("dropdown");
+
+        	y.domain([0, d3.max(data, function(d){
+				return +d[selection.value];})]);
+
+        	yAxis.scale(y);
+
+        	d3.selectAll(".rectangle")
+           		.transition()
+	            .attr("height", function(d){
+					return height - y(+d[selection.value]);
+				})
+			
+				.attr("x", function(d, i){
+					return (width / data.length) * i +5 ;
+				})
+				.attr("y", function(d){
+					return y(+d[selection.value]);
+				})
+           		
+			
+      
+           	d3.selectAll("g.y.axis")
+           		.transition()
+           		.call(yAxis);
+
+         });
+	
+	
+
+    selector.selectAll("option")
+      .data(elements)
+      .enter().append("option")
+      .attr("value", function(d){
+        return d;
+      })
+      .text(function(d){
+        return d;
+      })
+
+   
+});
+
+</script>
+<p class="footer">The raw data can be found on <a href="https://catalog.data.gov/dataset/abortion-demographics-1995-2012-8f496" target="_blank">data.gov.</a></p>
+
+</body>
